@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 
 include(GNUInstallDirs)
 
-options(URANIUM_CMAKE_PATH "Search location for Uranium cmake modules" "")
+option(URANIUM_CMAKE_PATH "Search location for Uranium cmake modules" "")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${URANIUM_CMAKE_PATH})
 
 set(URANIUM_DIR "${CMAKE_SOURCE_DIR}/../Uranium" CACHE PATH "The location of the Uranium repository")
