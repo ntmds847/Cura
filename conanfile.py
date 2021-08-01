@@ -47,6 +47,7 @@ class CuraConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["Python_VERSION"] = self.options.python_version
+        tc.variables["URANIUM_CMAKE_PATH"] = self.deps_user_info["Uranium"].URANIUM_CMAKE_PATH
         tc.generate()
 
     def requirements(self):
