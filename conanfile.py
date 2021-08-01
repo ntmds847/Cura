@@ -29,7 +29,7 @@ class CuraConan(ConanFile):
         "revision": "auto"
     }
 
-    def config_options(self):
+    def configure(self):
         self.options["Charon"].python_version = self.options.python_version
         self.options["Savitar"].python_version = self.options.python_version
         self.options["Uranium"].python_version = self.options.python_version
