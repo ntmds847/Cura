@@ -1,5 +1,5 @@
 project(cura)
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.16)
 
 include(GNUInstallDirs)
 
@@ -32,17 +32,13 @@ configure_file(${CMAKE_SOURCE_DIR}/com.ultimaker.cura.desktop.in ${CMAKE_BINARY_
 
 configure_file(cura/CuraVersion.py.in CuraVersion.py @ONLY)
 
-
-# FIXME: The new FindPython3 finds the system's Python3.6 reather than the Python3.5 that we built for Cura's environment.
-# So we're using the old method here, with FindPythonInterp for now.
-find_package(PythonInterp 3 REQUIRED)
-
-set(Python3_EXECUTABLE ${PYTHON_EXECUTABLE})
-
-set(Python3_VERSION ${PYTHON_VERSION_STRING})
-set(Python3_VERSION_MAJOR ${PYTHON_VERSION_MAJOR})
-set(Python3_VERSION_MINOR ${PYTHON_VERSION_MINOR})
-set(Python3_VERSION_PATCH ${PYTHON_VERSION_PATCH})
+if(NOT Python_VERSION)
+    set(Python_VERSION
+            3.8
+            CACHE STRING "Python Version" FORCE)
+    message(STATUS "Setting Python version to ${Python_VERSION}. Set Python_VERSION if you want to compile against an other version.")
+endif()
+find_package(Python3 ${Python_VERSION} EXACT REQUIRED COMPONENTS Interpreter)
 
 if(NOT ${URANIUM_DIR} STREQUAL "")
     set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${URANIUM_DIR}/cmake")
