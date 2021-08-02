@@ -13,7 +13,7 @@ class CuraConan(ConanFile):
     description = "3D printer / slicing GUI built on top of the Uranium framework"
     topics = ("conan", "python", "pyqt5", "qt", "qml", "3d-printing", "slicer")
     settings = "os", "compiler", "build_type", "arch"
-    generators = "PyCharmRunEnv"
+    generators = "pycharm_run"
     pycharm_targets = ["cura_app.py"]
     options = {
         "python_version": "ANY"
