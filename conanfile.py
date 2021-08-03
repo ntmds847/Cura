@@ -1,5 +1,6 @@
 import os
 
+from conans.tools import Git
 from conans import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
 from conan.tools.env import VirtualRunEnv
@@ -16,10 +17,16 @@ class CuraConan(ConanFile):
     generators = "pycharm_run"
     pycharm_targets = ["cura_app.py"]
     options = {
-        "python_version": "ANY"
+        "python_version": "ANY",
+        "enterprise": [True, False],
+        "staging": [True, False],
+        "external_engine": [True, False]
     }
     default_options = {
-        "python_version": "3.9"
+        "python_version": "3.9",
+        "enterprise": False,
+        "staging": False,
+        "external_engine": False
     }
     scm = {
         "type": "git",
@@ -64,3 +71,12 @@ class CuraConan(ConanFile):
         cmake.configure()
         cmake.build()
         cmake.install()
+
+    def package_info(self):
+        self.runenv_info.append("CURA_APP_DISPLAY_NAME", self.name)
+        self.runenv_info.append("CURA_VERSION", "master")
+        self.runenv_info.append("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
+        staging = "-staging" if self.options.staging else ""
+        self.runenv_info.append("CURA_CLOUD_API_ROOT", f"https://api{staging}.ultimaker.com")
+        self.runenv_info.append("CURA_CLOUD_ACCOUNT_API_ROOT", f"https://account{staging}.ultimaker.com")
+        self.runenv_info.append("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
