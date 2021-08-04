@@ -1,9 +1,10 @@
 import os
+import pathlib
 
-from conans.tools import Git
-from conans import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
 from conan.tools.env import VirtualRunEnv
+from conans import ConanFile
+
 
 class CuraConan(ConanFile):
     name = "Cura"
@@ -14,7 +15,7 @@ class CuraConan(ConanFile):
     description = "3D printer / slicing GUI built on top of the Uranium framework"
     topics = ("conan", "python", "pyqt5", "qt", "qml", "3d-printing", "slicer")
     settings = "os", "compiler", "build_type", "arch"
-    python_requires = "pycharmrunenv/0.1@ultimaker/testing"
+    generators = "PyCharmRunEnv", "VirtualRunEnv"
     pycharm_targets = [
         {
             "jinja_path": os.path.join(".conan_gen", "Cura.run.xml.jinja"),
@@ -24,7 +25,7 @@ class CuraConan(ConanFile):
         },
         {
             "jinja_path": os.path.join(".conan_gen", "Cura.run.xml.jinja"),
-            "name": "Cura-external-engine",
+            "name": "CuraExternalEngine",
             "entry_point": "cura_app.py",
             "arguments": "--external"
         }
@@ -62,9 +63,6 @@ class CuraConan(ConanFile):
         rv = VirtualRunEnv(self)
         rv.generate()
 
-        pg = self.python_requires["pycharmrunenv"].module.PyCharmRunEnv(self)
-        pg.generate()
-
         cmake = CMakeDeps(self)
         cmake.generate()
 
@@ -74,7 +72,6 @@ class CuraConan(ConanFile):
         tc.generate()
 
     def requirements(self):
-        self.requires("pycharm_run_gen/0.1@ultimaker/testing")
         self.requires(f"Charon/4.10.0@ultimaker/testing")
         self.requires(f"pynest2d/4.10.0@ultimaker/testing")
         self.requires(f"Savitar/4.10.0@ultimaker/testing")
