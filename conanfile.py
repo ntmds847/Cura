@@ -14,8 +14,21 @@ class CuraConan(ConanFile):
     description = "3D printer / slicing GUI built on top of the Uranium framework"
     topics = ("conan", "python", "pyqt5", "qt", "qml", "3d-printing", "slicer")
     settings = "os", "compiler", "build_type", "arch"
-    generators = "pycharm_run"
-    pycharm_targets = ["cura_app.py"]
+    python_requires = "pycharmrunenv/0.1@ultimaker/testing"
+    pycharm_targets = [
+        {
+            "jinja_path": os.path.join(".conan_gen", "Cura.run.xml.jinja"),
+            "name": "Cura",
+            "entry_point": "cura_app.py",
+            "arguments": ""
+        },
+        {
+            "jinja_path": os.path.join(".conan_gen", "Cura.run.xml.jinja"),
+            "name": "Cura-external-engine",
+            "entry_point": "cura_app.py",
+            "arguments": "--external"
+        }
+    ]
     options = {
         "python_version": "ANY",
         "enterprise": [True, False],
@@ -49,6 +62,9 @@ class CuraConan(ConanFile):
         rv = VirtualRunEnv(self)
         rv.generate()
 
+        pg = self.python_requires["pycharmrunenv"].module.PyCharmRunEnv(self)
+        pg.generate()
+
         cmake = CMakeDeps(self)
         cmake.generate()
 
@@ -58,7 +74,6 @@ class CuraConan(ConanFile):
         tc.generate()
 
     def requirements(self):
-        # self.requires("virtualenv_ultimaker_gen/0.1@ultimaker/testing")
         self.requires("pycharm_run_gen/0.1@ultimaker/testing")
         self.requires(f"Charon/4.10.0@ultimaker/testing")
         self.requires(f"pynest2d/4.10.0@ultimaker/testing")
@@ -73,10 +88,10 @@ class CuraConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.runenv_info.append("CURA_APP_DISPLAY_NAME", self.name)
-        self.runenv_info.append("CURA_VERSION", "master")
-        self.runenv_info.append("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
+        self.runenv_info.define("CURA_APP_DISPLAY_NAME", self.name)
+        self.runenv_info.define("CURA_VERSION", "master")
+        self.runenv_info.define("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
         staging = "-staging" if self.options.staging else ""
-        self.runenv_info.append("CURA_CLOUD_API_ROOT", f"https://api{staging}.ultimaker.com")
-        self.runenv_info.append("CURA_CLOUD_ACCOUNT_API_ROOT", f"https://account{staging}.ultimaker.com")
-        self.runenv_info.append("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_CLOUD_API_ROOT", f"https://api{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_CLOUD_ACCOUNT_API_ROOT", f"https://account{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
