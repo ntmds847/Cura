@@ -16,6 +16,7 @@ class CuraConan(ConanFile):
     topics = ("conan", "python", "pyqt5", "qt", "qml", "3d-printing", "slicer")
     settings = "os", "compiler", "build_type", "arch"
     generators = "PyCharmRunEnv", "VirtualRunEnv"
+    exports = "LICENSE", str(os.path.join(".conan_gen", "Cura.run.xml.jinja"))
     pycharm_targets = [
         {
             "jinja_path": os.path.join(".conan_gen", "Cura.run.xml.jinja"),
