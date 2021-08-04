@@ -116,12 +116,12 @@ class CuraConan(ConanFile):
     def layout(self):
 
         self.runenv_info.define("CURA_APP_DISPLAY_NAME", self.name)
-        self.env.define("CURA_VERSION", "master")
-        self.env.define("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
+        self.runenv_info.define("CURA_VERSION", "master")
+        self.runenv_info.define("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
         staging = "-staging" if self.options.staging else ""
-        self.env.define("CURA_CLOUD_API_ROOT", f"https://api{staging}.ultimaker.com")
-        self.env.define("CURA_CLOUD_ACCOUNT_API_ROOT", f"https://account{staging}.ultimaker.com")
-        self.env.define("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_CLOUD_API_ROOT", f"https://api{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_CLOUD_ACCOUNT_API_ROOT", f"https://account{staging}.ultimaker.com")
+        self.runenv_info.define("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
 
     def generate(self):
         rv = VirtualRunEnv(self)
