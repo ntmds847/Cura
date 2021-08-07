@@ -91,7 +91,7 @@ class CuraConan(ConanFile):
         "external_engine": [True, False]
     }
     default_options = {
-        "python_version": "3.9",
+        "python_version": "3.8",
         "enterprise": False,
         "staging": False,
         "external_engine": False
