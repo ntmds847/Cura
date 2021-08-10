@@ -5,8 +5,7 @@
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
-        {% for key, value in env_vars.items() %}
-            <env name="{{ key }}" value="{{ value }}" />
+        {% for key, value in env_vars.items() %}<env name="{{ key }}" value="{{ value }}" />
         {% endfor %}
     </envs>
     <option name="SDK_HOME" value="" />

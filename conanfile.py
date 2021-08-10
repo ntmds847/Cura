@@ -1,62 +1,104 @@
 import os
+import shutil
 import pathlib
+from copy import deepcopy
 
+from conan.tools.env.virtualrunenv import runenv_from_cpp_info, VirtualRunEnv
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
-from conan.tools.env import VirtualRunEnv
+from conans.tools import save
 from conans import ConanFile
 
-import os
-import pathlib
-
-from copy import deepcopy
-from conans.model import Generator
-from conan.tools.env import Environment
-from conan.tools.env.virtualrunenv import runenv_from_cpp_info
-from conans.tools import save
 from jinja2 import Template
 
 
-class PyCharmRunEnv:
-    """ captures the conanfile environment that is defined from its
-    dependencies, and also from profiles
+class CuraVirtualRunEnv(VirtualRunEnv):
+    """
+    Creates a shell script that sets the environment with a self consuming Environment.
+
+        Make sure you add CuraVersion.py with the following content to the folder cura::
+
+        import os
+
+        CuraAppDisplayName = os.getenv("CURA_APP_DISPLAY_NAME", "Cura")
+        CuraVersion = os.getenv("CURA_VERSION", "master")
+        CuraBuildType = os.getenv("CURA_BUILD_TYPE", "")
+        CuraDebugMode = True
+        CuraCloudAPIRoot = os.getenv("CURA_CLOUD_API_ROOT", "https://api.ultimaker.com")
+        CuraCloudAccountAPIRoot = os.getenv("CURA_CLOUD_ACCOUNT_API_ROOT", "https://account.ultimaker.com")
+        CuraDigitalFactoryURL = os.getenv("CURA_DIGITAL_FACTORY_URL", "https://digitalfactory.ultimaker.com")
+
     """
 
-    def __init__(self, conanfile):
-        self.conanfile = conanfile
-
     def environment(self):
-        """ collects the runtime information from dependencies. For normal libraries should be
-        very occasional
-        """
-        self.conanfile.output.info("PyCharmRunEnv environment")
-        runenv = self.conanfile.runenv_info
-        host_req = self.conanfile.dependencies.host
-        test_req = self.conanfile.dependencies.test
+        runenv = self._conanfile.runenv_info  # Only difference with the VirtualRunEnv
+        host_req = self._conanfile.dependencies.host
+        test_req = self._conanfile.dependencies.test
         for _, dep in list(host_req.items()) + list(test_req.items()):
             if dep.runenv_info:
                 runenv.compose(dep.runenv_info)
-            runenv.compose(runenv_from_cpp_info(self.conanfile, dep.cpp_info))
+            runenv.compose(runenv_from_cpp_info(self._conanfile, dep.cpp_info))
+
+        return runenv
+
+
+class PyCharmRunEnv(VirtualRunEnv):
+    """
+    Creates a Pycharm.run.xml file based on the jinja template in .conan_gen where all environment variables are set,
+    defined in the dependencies and in the current conanfile.
+
+    The conan file needs to have a list called pycharm_targets with dicts (with the following struct::
+
+        pycharm_targets = [
+            {
+                "jinja_path": str(os.path.join(pathlib.Path(__file__).parent.absolute(), ".conan_gen", "<TemplateFile>.run.xml.jinja")),
+                "name": "<Name of the run file>",
+                "entry_point": "<target it needs to run>",
+                "arguments": "<extra command line arguments>"
+            }
+        ]
+
+
+    Make sure you add CuraVersion.py with the following content to the folder cura::
+
+        import os
+
+        CuraAppDisplayName = os.getenv("CURA_APP_DISPLAY_NAME", "Cura")
+        CuraVersion = os.getenv("CURA_VERSION", "master")
+        CuraBuildType = os.getenv("CURA_BUILD_TYPE", "")
+        CuraDebugMode = True
+        CuraCloudAPIRoot = os.getenv("CURA_CLOUD_API_ROOT", "https://api.ultimaker.com")
+        CuraCloudAccountAPIRoot = os.getenv("CURA_CLOUD_ACCOUNT_API_ROOT", "https://account.ultimaker.com")
+        CuraDigitalFactoryURL = os.getenv("CURA_DIGITAL_FACTORY_URL", "https://digitalfactory.ultimaker.com")
+
+    """
+
+    def environment(self):
+        runenv = self._conanfile.runenv_info
+        host_req = self._conanfile.dependencies.host
+        test_req = self._conanfile.dependencies.test
+        for _, dep in list(host_req.items()) + list(test_req.items()):
+            if dep.runenv_info:
+                runenv.compose(dep.runenv_info)
+            runenv.compose(runenv_from_cpp_info(self._conanfile, dep.cpp_info))
 
         return runenv
 
     def generate(self, auto_activate = False):
-        self.conanfile.output.info("PyCharmRunEnv generate")
         run_env = self.environment()
         if run_env:
-            self.conanfile.output.info("PyCharmRunEnv run_env")
-            if not hasattr(self.conanfile, "pycharm_targets"):
-                self.conanfile.output.error("pycharm_targets not set in conanfile.py")
+            if not hasattr(self._conanfile, "pycharm_targets"):
+                self._conanfile.output.error("pycharm_targets not set in conanfile.py")
                 return
-            for ref_target in getattr(self.conanfile, "pycharm_targets"):
+            for ref_target in getattr(self._conanfile, "pycharm_targets"):
                 target = deepcopy(ref_target)
                 jinja_path = target.pop("jinja_path")
-                self.conanfile.output.info(f"jinja_path: {jinja_path}")
                 with open(jinja_path, "r") as f:
                     tm = Template(f.read())
                     result = tm.render(env_vars = run_env, **target)
                     file_name = f"{target['name']}.run.xml"
-                    path = os.path.join(self.conanfile.generators_folder, file_name)
+                    path = os.path.join(target['run_path'], file_name)
                     save(path, result)
+                    self._conanfile.output.info(f"PyCharm run file created: {path}")
 
 
 class CuraConan(ConanFile):
@@ -68,20 +110,22 @@ class CuraConan(ConanFile):
     description = "3D printer / slicing GUI built on top of the Uranium framework"
     topics = ("conan", "python", "pyqt5", "qt", "qml", "3d-printing", "slicer")
     settings = "os", "compiler", "build_type", "arch"
-    generators = "VirtualRunEnv"
     exports = "LICENSE", str(os.path.join(".conan_gen", "Cura.run.xml.jinja"))
+    base_path = pathlib.Path(__file__).parent.absolute()
     pycharm_targets = [
         {
-            "jinja_path": os.path.join(os.path.abspath(os.path.dirname(__file__)), ".conan_gen", "Cura.run.xml.jinja"),
-            "name": "Cura",
+            "jinja_path": str(os.path.join(base_path, ".conan_gen", "Cura.run.xml.jinja")),
+            "name": "cura_app",
             "entry_point": "cura_app.py",
-            "arguments": ""
+            "arguments": "",
+            "run_path": str(os.path.join(base_path, ".run"))
         },
         {
-            "jinja_path": os.path.join(os.path.abspath(os.path.dirname(__file__)), ".conan_gen", "Cura.run.xml.jinja"),
-            "name": "CuraExternalEngine",
+            "jinja_path": str(os.path.join(base_path, ".conan_gen", "Cura.run.xml.jinja")),
+            "name": "cura_app_external_engine",
             "entry_point": "cura_app.py",
-            "arguments": "--external"
+            "arguments": "--external",
+            "run_path": str(os.path.join(base_path, ".run"))
         }
     ]
     options = {
@@ -114,7 +158,6 @@ class CuraConan(ConanFile):
         self.build_requires("cmake/[>=3.16.2]")
 
     def layout(self):
-
         self.runenv_info.define("CURA_APP_DISPLAY_NAME", self.name)
         self.runenv_info.define("CURA_VERSION", "master")
         self.runenv_info.define("CURA_BUILD_TYPE", "Enterprise" if self.options.enterprise else "")
@@ -124,7 +167,7 @@ class CuraConan(ConanFile):
         self.runenv_info.define("CURA_DIGITAL_FACTORY_URL", f"https://digitalfactory{staging}.ultimaker.com")
 
     def generate(self):
-        rv = VirtualRunEnv(self)
+        rv = CuraVirtualRunEnv(self)
         rv.generate()
 
         pv = PyCharmRunEnv(self)
@@ -132,6 +175,20 @@ class CuraConan(ConanFile):
 
         cmake = CMakeDeps(self)
         cmake.generate()
+
+        # Make sure CuraEngine exist at the root
+        ext = ""
+        if self.settings.os == "Windows":
+            ext = ".exe"
+        curaengine_src = pathlib.Path(self.runenv_info["CURAENGINE"])
+        curaengine_dst = pathlib.Path(os.path.join(self.base_path, f"CuraEngine{ext}"))
+        if curaengine_dst.exists():
+            os.remove(curaengine_dst)
+        try:
+            curaengine_dst.symlink_to(curaengine_src)
+        except OSError as e:
+            self.output.warning("Could not create symlink to CuraEngine copying instead")
+            shutil.copy(curaengine_src, curaengine_dst)
 
         tc = CMakeToolchain(self)
         tc.variables["Python_VERSION"] = self.options.python_version
