@@ -180,9 +180,9 @@ class CuraConan(ConanFile):
         ext = ""
         if self.settings.os == "Windows":
             ext = ".exe"
-        curaengine_src = pathlib.Path(self.runenv_info["CURAENGINE"])
+        curaengine_src = pathlib.Path(self.deps_user_info["CuraEngine"].CURAENGINE)
         curaengine_dst = pathlib.Path(os.path.join(self.base_path, f"CuraEngine{ext}"))
-        if curaengine_dst.exists():
+        if os.path.exists(curaengine_dst):
             os.remove(curaengine_dst)
         try:
             curaengine_dst.symlink_to(curaengine_src)
